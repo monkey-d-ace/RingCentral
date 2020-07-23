@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+</head>
+<body>
+    <div class="panel panel-info" style="width: 500px; margin: 0 auto;">
+        <div class="panel-heading"><span data-th-text="${filePath.name}"></span></div>
+        <div class="panel-body">
+            <form class="form" data-th-action="'/update/' + ${filePath.id}" method="post">
+                <textarea class="form-control" name="info" data-th-text="${info}"></textarea><br/>
+                <button class="btn btn-primary" type="submit">Save</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
