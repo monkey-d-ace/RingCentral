@@ -21,12 +21,15 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 public class Controller {
     @Value("${filepath}")
     private String filepath;
-
+    
+    private static final ReentrantLock LOCK = new ReentrantLock(true);
+    
     @Autowired
     private FilePathMapper filePathMapper;
 
@@ -93,13 +96,29 @@ public class Controller {
     }
 
     @PostMapping("/update/{id}")
-    public void update(@PathVariable("id") String id, @RequestParam("info") String info, HttpServletResponse response) throws IOException {
+    public void update(@PathVariable("id") String id, @RequestParam("info") String info, HttpServletRequest request, HttpServletResponse response) throws IOException {
         System.out.println(id);
-        FilePath filePath = filePathMapper.selectByPrimaryKey(id);
-        String name = filePath.getName();
-        Path path = Paths.get(filepath + name + ".txt");
-        byte[] bytes = info.getBytes();
-        Files.write(path, bytes);
-        response.sendRedirect("/edit/" + id);
+
+        try {
+            if (LOCK.tryLock()) {
+                FilePath filePath = filePathMapper.selectByPrimaryKey(id);
+                String name = filePath.getName();
+                Path path = Paths.get(filepath + name + ".txt");
+                byte[] bytes = info.getBytes();
+                Files.write(path, bytes);
+                Thread.sleep(60000);
+                response.sendRedirect("/edit/" + id);
+                LOCK.unlock();
+            } else {
+                System.out.println("-------------------------");
+                response.sendRedirect("/edit/" + id + "?wait=true");
+            }
+        } catch (Exception e) {
+            try {
+                Thread.sleep(60000);
+            } catch (InterruptedException e1) {
+                e1.printStackTrace();
+            }
+        }
     }
 }
