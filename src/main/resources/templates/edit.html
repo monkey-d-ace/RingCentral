@@ -11,6 +11,9 @@
         <div class="panel-body">
             <form class="form" data-th-action="'/update/' + ${filePath.id}" method="post">
                 <textarea class="form-control" name="info" data-th-text="${info}"></textarea><br/>
+                <span data-th-if="${wait}">
+                    <span class="text-warning">其他用户正在操作，请等待60s左右</span>
+                </span>
                 <button class="btn btn-primary" type="submit">Save</button>
             </form>
         </div>
