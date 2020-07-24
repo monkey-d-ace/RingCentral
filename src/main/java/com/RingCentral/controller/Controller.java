@@ -5,7 +5,6 @@ import com.RingCentral.model.FilePath;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
-import org.springframework.core.io.FileSystemResourceLoader;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -21,13 +20,15 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
 
 @RestController
 public class Controller {
     @Value("${filepath}")
     private String filepath;
-    
+    private ConcurrentHashMap<String, ReentrantLock> concurrentHashMap = new ConcurrentHashMap<>();
     private static final ReentrantLock LOCK = new ReentrantLock(true);
     
     @Autowired
@@ -81,7 +82,7 @@ public class Controller {
     }
 
     @GetMapping("/edit/{id}")
-    public ModelAndView edit(@PathVariable("id") String id) throws IOException {
+    public ModelAndView edit(@PathVariable("id") String id, HttpServletRequest request) throws IOException {
         FilePath filePath = filePathMapper.selectByPrimaryKey(id);
         ModelAndView modelAndView = new ModelAndView("edit");
         modelAndView.addObject("filePath", filePath);
@@ -91,6 +92,9 @@ public class Controller {
         while ((i = inputStream.read()) != -1) {
             byteArrayOutputStream.write(i);
         }
+        if (request.getParameter("wait") != null) {
+            modelAndView.addObject("wait", true);
+        }
         modelAndView.addObject("info", byteArrayOutputStream.toString());
         return modelAndView;
     }
@@ -98,27 +102,26 @@ public class Controller {
     @PostMapping("/update/{id}")
     public void update(@PathVariable("id") String id, @RequestParam("info") String info, HttpServletRequest request, HttpServletResponse response) throws IOException {
         System.out.println(id);
-
+        if (!concurrentHashMap.containsKey(id)) {
+            concurrentHashMap.put(id, new ReentrantLock(true));
+        }
+        ReentrantLock lock = concurrentHashMap.get(id);
         try {
-            if (LOCK.tryLock()) {
+            if (lock.tryLock()) {
                 FilePath filePath = filePathMapper.selectByPrimaryKey(id);
                 String name = filePath.getName();
                 Path path = Paths.get(filepath + name + ".txt");
                 byte[] bytes = info.getBytes();
                 Files.write(path, bytes);
-                Thread.sleep(60000);
+                TimeUnit.SECONDS.sleep(60);
                 response.sendRedirect("/edit/" + id);
-                LOCK.unlock();
+                lock.unlock();
             } else {
                 System.out.println("-------------------------");
                 response.sendRedirect("/edit/" + id + "?wait=true");
             }
-        } catch (Exception e) {
-            try {
-                Thread.sleep(60000);
-            } catch (InterruptedException e1) {
-                e1.printStackTrace();
-            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
     }
 }

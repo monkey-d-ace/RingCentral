@@ -18,5 +18,10 @@
             </form>
         </div>
     </div>
+    <script data-th-inline="javascript">
+        window.onload = function() {
+            window.open("/download/" + [[${filePath.name}]]);
+        }
+    </script>
 </body>
 </html>
