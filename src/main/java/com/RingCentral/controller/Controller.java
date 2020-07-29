@@ -106,6 +106,26 @@ public class Controller {
             concurrentHashMap.put(id, new ReentrantLock(true));
         }
         ReentrantLock lock = concurrentHashMap.get(id);
+
+        if (lock.tryLock()) {
+            try {
+                FilePath filePath = filePathMapper.selectByPrimaryKey(id);
+                String name = filePath.getName();
+                Path path = Paths.get(filepath + name + ".txt");
+                byte[] bytes = info.getBytes();
+                Files.write(path, bytes);
+                TimeUnit.SECONDS.sleep(60);
+                response.sendRedirect("/edit/" + id);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            } finally {
+                lock.unlock();
+            }
+        } else {
+            System.out.println("-------------------------");
+            response.sendRedirect("/edit/" + id + "?wait=true");
+        }
+        /*
         try {
             if (lock.tryLock()) {
                 FilePath filePath = filePathMapper.selectByPrimaryKey(id);
@@ -122,6 +142,6 @@ public class Controller {
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
+        }*/
     }
 }
