@@ -117,6 +117,7 @@ public class Controller {
                 TimeUnit.SECONDS.sleep(60);
                 response.sendRedirect("/edit/" + id);
             } catch (InterruptedException e) {
+                System.out.println("线程中断");
                 e.printStackTrace();
             } finally {
                 lock.unlock();
